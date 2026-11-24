@@ -9,3 +9,9 @@ body {
   margin: 0;
   padding: 0;
 }
+.scene-control-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}

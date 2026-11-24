@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useAnimationHub } from "../animation/AnimationHub";
 
 import "./UserControls.css";
+import CockpitAlignment from "./CockpitAlignment";
+import { PerformancePreview } from "./AircraftStatus";
 
 export default function UserControls() {
   const {
@@ -103,8 +105,10 @@ export default function UserControls() {
               >
                 Reset configuration
               </button>
+              <PerformancePreview />
             </>
           )}
+          {isAircraftReady && <CockpitAlignment />}
         </div>
       )}
     </aside>

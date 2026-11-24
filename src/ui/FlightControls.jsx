@@ -12,8 +12,10 @@ export default function FlightControls() {
     status,
     cameraMode,
     progress,
-    telemetry,
+    telemetry, autoPathFollowing, setAutoPathFollowing, showGhostAircraft, setShowGhostAircraft, failureReason,
 
+    showFlightPath,
+    setShowFlightPath,
     startFlight,
     exitFlight,
     toggleCamera,
@@ -75,6 +77,7 @@ export default function FlightControls() {
     exitFlight,
     ]);
 
+  const hub = useAnimationHub();
   const percentage = Math.round(progress * 100);
 
   return (
@@ -92,17 +95,21 @@ export default function FlightControls() {
       </header>
 
       {mode === "configure" ? (
+        <>
+        <div className="flight-options"><label><input type="checkbox" checked={autoPathFollowing} onChange={e=>setAutoPathFollowing(e.target.checked)}/> Auto path following</label><label><input type="checkbox" checked={showGhostAircraft} onChange={e=>setShowGhostAircraft(e.target.checked)}/> Shadow aircraft</label></div>
         <button
           className="flight-button primary"
           onClick={startFlight}
+          disabled={!hub.isAircraftReady}
         >
-          Start Flight
+          {hub.isAircraftReady ? "Start Flight" : "Loading aircraft…"}
         </button>
+        </>
       ) : (
         <>
           <div className="flight-status">
             <span>
-                {status === "completed"
+                {status === "failed" ? "Flight failed" : status === "completed"
                 ? "Flight completed"
                 : status === "paused"
                     ? "Flight paused"
@@ -128,34 +135,19 @@ export default function FlightControls() {
             />
           </div>
 
-          <div className="flight-throttle">
-            <div className="flight-throttle-label">
-                <span>Throttle</span>
-
-                <strong>
-                {Math.round(telemetry.throttle * 100)}%
-                </strong>
-            </div>
-
-            <div
-                className="flight-throttle-track"
-                role="progressbar"
-                aria-label="Engine throttle"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(
-                telemetry.throttle * 100
-                )}
-            >
-                <div
-                className="flight-throttle-fill"
-                style={{
-                    width: `${telemetry.throttle * 100}%`,
-                }}
-                />
-            </div>
-            </div>
-
+          <div className="flight-options">
+            <label><input type="checkbox" checked={autoPathFollowing} onChange={e=>{setAutoPathFollowing(e.target.checked);e.target.blur();}}/> Auto path following</label>
+            <label><input type="checkbox" checked={showGhostAircraft} onChange={e=>{setShowGhostAircraft(e.target.checked);e.target.blur();}}/> Shadow aircraft</label>
+          </div>
+          <button
+            type="button"
+            className="flight-button"
+            aria-pressed={showFlightPath}
+            onClick={() => setShowFlightPath(visible => !visible)}
+          >
+            Flight path {showFlightPath ? "on" : "off"}
+          </button>
+          {failureReason && status === "failed" && <p className="flight-warning">{failureReason}</p>}
           <div className="flight-camera-controls">
             <button
               className={`flight-button ${
@@ -192,7 +184,7 @@ export default function FlightControls() {
 
           <div className="flight-actions">
 
-            {status !== "completed" && (
+            {status !== "completed" && status !== "failed" && (
                 <button
                     className="flight-button flight-pause-button"
                     onClick={togglePause}

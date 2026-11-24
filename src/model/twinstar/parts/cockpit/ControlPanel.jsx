@@ -1,11 +1,14 @@
 // src/model/twinstar/parts/cockpit/ControlPanel.jsx
 
+import { useAnimationHub } from "../../../../animation/AnimationHub";
+
 export default function ControlPanel({
   nodes,
   materials,
 }) {
+  const { alignment } = useAnimationHub();
   return (
-    <>
+    <group position={alignment.controlPanelPosition}>
       <mesh
         name="control_pannel"
         geometry={nodes.control_pannel.geometry}
@@ -19,6 +22,6 @@ export default function ControlPanel({
         }
         material={materials.console}
       />
-    </>
+    </group>
   );
 }

@@ -1,10 +1,13 @@
 // src/model/twinstar/parts/cockpit/ControlStick.jsx
 
+import { useAnimationHub } from "../../../../animation/AnimationHub";
+
 export default function ControlStick({ nodes }) {
+  const { alignment } = useAnimationHub();
   return (
     <group
       name="Armature"
-      position={[0.827, -0.604, 3.154]}
+      position={alignment.controlStickPosition}
       userData={{ name: "Armature" }}
     >
       <primitive object={nodes.Bone} />

@@ -3,11 +3,46 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
   useCallback,
 } from "react";
+
+import { PILOT_CONFIG } from "../model/pilot/pilotConfig";
+
+const alignmentKey = "twinstar.cockpit-alignment.v3";
+const alignmentDefaults = {
+  standingPosition: PILOT_CONFIG.standingPosition,
+  seatedPosition: PILOT_CONFIG.seatedPosition,
+  controlStickPosition: PILOT_CONFIG.controlStickPosition,
+  controlPanelPosition: PILOT_CONFIG.controlPanelPosition,
+  scale: PILOT_CONFIG.scale,
+  seatRecline: PILOT_CONFIG.seatRecline,
+  legSpread: PILOT_CONFIG.legSpread,
+  headTilt: PILOT_CONFIG.headTilt,
+};
+
+function readAlignment() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(alignmentKey));
+    const alignment = { ...alignmentDefaults };
+    for (const [name, defaults] of Object.entries(alignmentDefaults)) {
+      const value = saved?.[name];
+      if (Array.isArray(defaults)) {
+        if (Array.isArray(value) && value.length === 3 && value.every(Number.isFinite)) {
+          alignment[name] = value;
+        }
+      } else if (Number.isFinite(value) && (name !== "scale" || value >= 0.01)) {
+        alignment[name] = value;
+      }
+    }
+    return alignment;
+  } catch {
+    return alignmentDefaults;
+  }
+}
 
 function useHinge(
   initial = 0,
@@ -47,6 +82,15 @@ export const useAnimationHub = () =>
 
 export default function AnimationHub({ children }) {
   const isInteracting = useRef(false);
+  const [alignment, setAlignment] = useState(readAlignment);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(alignmentKey, JSON.stringify(alignment));
+    } catch {
+      // Live adjustment is still available if browser storage is disabled.
+    }
+  }, [alignment]);
 
   const refs = useRef({
     planeBody: null,
@@ -166,6 +210,8 @@ export default function AnimationHub({ children }) {
       refs,
       isInteracting,
       isAircraftReady,
+      alignment,
+      setAlignment,
 
       morphs,
       morphNames,
@@ -193,6 +239,7 @@ export default function AnimationHub({ children }) {
       morphNames,
       morphValues,
       isAircraftReady,
+      alignment,
       registerMorphTargets,
       setMorphValue,
       resetMorphValues,

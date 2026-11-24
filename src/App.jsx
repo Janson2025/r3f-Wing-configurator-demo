@@ -3,6 +3,8 @@
 import {
   Suspense,
   useLayoutEffect,
+  useRef,
+  useState,
 } from "react";
 
 import {
@@ -13,7 +15,6 @@ import {
 import {
   OrbitControls,
   Environment,
-  Center,
 } from "@react-three/drei";
 
 import AnimationHub, {
@@ -21,6 +22,7 @@ import AnimationHub, {
 } from "./animation/AnimationHub";
 
 import Animator from "./animation/Animator";
+import FlightClouds from "./scene/environment/FlightClouds";
 
 import { TwinStar } from "./model/twinstar/TwinStar";
 
@@ -38,6 +40,13 @@ import FlightProvider, {
 import FlightAircraft from "./flight/FlightAircraft";
 import FlightCamera from "./flight/FlightCamera";
 import FlightTrack from "./flight/FlightTrack";
+import FlightCourse from "./flight/FlightCourse";
+import HingeControl from "./ui/HingeControl";
+import Pilot from "./model/pilot/Pilot";
+import PilotBoundary from "./model/pilot/PilotBoundary";
+import FlightClock from "./ui/FlightClock";
+import AircraftStatus from "./ui/AircraftStatus";
+import GhostAircraft from "./flight/replay/GhostAircraft";
 
 // ---------------------------------------------
 // Scene configuration
@@ -65,7 +74,7 @@ function ConfiguratorCamera() {
 
   useLayoutEffect(() => {
     // Restore the original camera when leaving flight.
-    camera.position.set(21, 21, 21);
+    camera.position.set(35, 24, 38);
 
     camera.up.set(0, 1, 0);
     camera.fov = 45;
@@ -172,22 +181,36 @@ function SceneLighting() {
 // Aircraft configuration scene
 // ---------------------------------------------
 
-function ConfiguratorScene() {
+function ConfiguratorScene({ controlOverlay }) {
+  const [seated, setSeated] = useState(false);
+  const { alignment } = useAnimationHub();
+  const [x, y, z] = alignment.standingPosition;
   return (
     <>
       <ConfiguratorCamera />
+      <FlightTrack showPath={false} />
+      <HingeControl
+        portal={controlOverlay}
+        offset={[x, y + 2.05 * alignment.scale, z]}
+        ariaLabel="Pilot in cockpit"
+        selected={seated}
+        onClick={() => setSeated(current => !current)}
+      />
+      <PilotBoundary>
+        <Suspense fallback={null}><Pilot seated={seated} /></Suspense>
+      </PilotBoundary>
 
       <Suspense fallback={null}>
-        <Center>
+        <group>
           <TwinStar
             scale={1}
-            rotation={[0, Math.PI / 8, 0]}
+            rotation={[0, 0, 0]}
           />
 
           {SCENE_CONFIG.debugAxesVisible && (
             <DebugAxes size={1.2} visible />
           )}
-        </Center>
+        </group>
       </Suspense>
     </>
   );
@@ -198,16 +221,22 @@ function ConfiguratorScene() {
 // ---------------------------------------------
 
 function FlightScene() {
-  const { sessionId } = useFlight();
+  const { sessionId, showFlightPath } = useFlight();
 
   return (
     <>
-      <FlightTrack />
+      <FlightTrack showPath={showFlightPath} />
+      <FlightCourse key={sessionId} />
 
       <Suspense fallback={null}>
-        <FlightAircraft key={sessionId} />
+        <FlightClouds key={`clouds-${sessionId}`} />
 
-        <FlightCamera key={`camera-${sessionId}`} />
+        <FlightAircraft key={sessionId} />
+        <GhostAircraft key={`ghost-${sessionId}`} />
+
+        <FlightCamera
+          key={`camera-${sessionId}`}
+        />
       </Suspense>
     </>
   );
@@ -217,7 +246,7 @@ function FlightScene() {
 // Main Three.js scene
 // ---------------------------------------------
 
-function AircraftScene() {
+function AircraftScene({ controlOverlay }) {
   const { mode } = useFlight();
 
   return (
@@ -227,7 +256,7 @@ function AircraftScene() {
       <Animator key={mode} />
 
       {mode === "configure" ? (
-        <ConfiguratorScene />
+        <ConfiguratorScene controlOverlay={controlOverlay} />
       ) : (
         <FlightScene />
       )}
@@ -241,9 +270,11 @@ function AircraftScene() {
 
 function Application() {
   const { mode } = useFlight();
+  const controlOverlay = useRef(null);
 
   return (
     <>
+      <div className="scene-control-overlay" ref={controlOverlay} />
       <Canvas
         camera={{
           position: [21, 21, 21],
@@ -257,10 +288,12 @@ function Application() {
           powerPreference: "high-performance",
         }}
       >
-        <AircraftScene />
+        <AircraftScene controlOverlay={controlOverlay} />
       </Canvas>
 
       <FlightControls />
+      <FlightClock />
+      <AircraftStatus />
 
       {mode === "configure" && (
         <UserControls />

@@ -5,6 +5,7 @@ import { useFlight } from "../flight/FlightContext";
 
 export default function HingeControl({
   onClick,
+  portal,
   offset = [0, 0.2, 0],
   size = 12,                 // consider >= 10px for crispness & clickability
   distanceFactor = 20,
@@ -33,6 +34,7 @@ export default function HingeControl({
 
   return (
     <Html
+      portal={portal}
       transform
       sprite
       distanceFactor={distanceFactor}
@@ -47,6 +49,7 @@ export default function HingeControl({
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         aria-label={ariaLabel}
+        title={ariaLabel}
         aria-pressed={selected}
         style={{
           padding: 0,
@@ -56,7 +59,6 @@ export default function HingeControl({
           background: "transparent",
           display: "block",
           cursor: "pointer",
-          outline: "none",
         }}
       >
         <svg

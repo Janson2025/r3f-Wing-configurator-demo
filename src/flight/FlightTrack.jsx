@@ -6,7 +6,7 @@ import { Line } from "@react-three/drei";
 import { flightPath } from "./flightPath";
 import { FLIGHT_CONFIG } from "./flightConfig";
 
-export default function FlightTrack() {
+export default function FlightTrack({ showPath = true }) {
   const points = useMemo(() => {
     return Array.from(
       { length: 501 },
@@ -18,7 +18,7 @@ export default function FlightTrack() {
 
   return (
     <group>
-      {FLIGHT_CONFIG.showTrack && (
+      {showPath && (
         <Line
           points={points}
           color="#63d5ff"

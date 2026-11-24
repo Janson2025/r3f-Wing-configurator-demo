@@ -1,13 +1,12 @@
 {
-  "name": "r3f-ultimate-character-configurator",
+  "name": "twinstar-flight-lab",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "start": "node server.js"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -18,7 +17,8 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "three": "^0.180.0",
-    "three-stdlib": "^2.36.1"
+    "three-stdlib": "^2.36.1",
+    "@pixiv/three-vrm": "^3.4.0"
   },
   "devDependencies": {
     "@types/react": "^19.1.10",

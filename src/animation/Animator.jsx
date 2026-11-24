@@ -38,7 +38,7 @@ export default function Animator() {
 
     const enginesRunning =
       mode === "flight" &&
-      status === "flying";
+      status === "flying" && telemetry.fuelRemaining > 0;
 
     if (enginesRunning) {
       const idleSpeed = 5;

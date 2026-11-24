@@ -127,3 +127,49 @@
   outline: 2px solid #60bddf;
   outline-offset: 3px;
 }
+.cockpit-alignment {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #344657;
+  font-size: 12px;
+}
+
+.cockpit-alignment summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.cockpit-alignment p {
+  margin: 8px 0;
+  color: #91a9bb;
+}
+
+.cockpit-alignment fieldset {
+  min-width: 0;
+  margin: 0 0 9px;
+  padding: 4px 0 0;
+}
+
+.cockpit-alignment-axes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.cockpit-alignment label {
+  display: grid;
+  gap: 3px;
+}
+
+.cockpit-alignment input {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  padding: 4px;
+  border: 1px solid #344657;
+  border-radius: 4px;
+  background: #182633;
+  color: #e8f0f6;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}

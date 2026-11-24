@@ -9,11 +9,13 @@ import {
   useMemo,
 } from "react";
 
+import { useAnimationHub } from "../animation/AnimationHub";
+import { calculatePerformance } from "../aircraft/performance/calculatePerformance";
 import { FLIGHT_CONFIG } from "./flightConfig";
 
 const FlightContext = createContext(null);
 
-function createTelemetry(started = false) {
+function createTelemetry(started = false, performance = calculatePerformance()) {
   return {
     speed: started ? FLIGHT_CONFIG.initialSpeed : 0,
     throttle: started ? FLIGHT_CONFIG.initialThrottle : 0,
@@ -31,6 +33,12 @@ function createTelemetry(started = false) {
 
     braking: false,
     elapsedTime: 0,
+    fuelRemaining: started ? performance.startingFuel : 0,
+    fuelCapacity: performance.startingFuel,
+    fuelFlow: 0,
+    pathDeviation: 0,
+    corridorTimeLeft: null,
+    collectedRings: 0,
   };
 }
 
@@ -47,9 +55,17 @@ export function useFlight() {
 }
 
 export default function FlightProvider({ children }) {
+  const hub = useAnimationHub();
+  const predictedPerformance = useMemo(() => calculatePerformance(hub.morphValues), [hub.morphValues]);
+  const [performance, setPerformance] = useState(() => calculatePerformance());
+  const [autoPathFollowing, setAutoPathFollowing] = useState(true);
+  const [showFlightPath, setShowFlightPath] = useState(FLIGHT_CONFIG.showTrack);
+  const [showGhostAircraft, setShowGhostAircraft] = useState(true);
+  const [failureReason, setFailureReason] = useState(null);
   // Application state
   const [mode, setMode] = useState("configure");
   const [status, setStatus] = useState("ready");
+  const failFlight = useCallback(reason => { setFailureReason(reason); setStatus("failed"); }, []);
 
   // Camera state
   const [cameraMode, setCameraMode] =
@@ -66,6 +82,7 @@ export default function FlightProvider({ children }) {
 
   // Mutable Three.js aircraft reference
   const aircraftRef = useRef(null);
+  const simulationTime = useRef(0);
 
   // -----------------------------------------
   // Flight lifecycle
@@ -73,7 +90,12 @@ export default function FlightProvider({ children }) {
 
   const startFlight = useCallback(() => {
     setProgress(0);
-    setTelemetry(createTelemetry(true));
+    simulationTime.current=0;
+    const profile = calculatePerformance(hub.morphs.current);
+    setPerformance(profile);
+    setFailureReason(null);
+    setTelemetry(createTelemetry(true, profile));
+    for (const hinge of [hub.cockpitHinge, hub.rearWindowHinge, hub.noseHatchHinge]) { hinge.setOpen(false); hinge.angle.current=0; }
 
     setCameraMode("external");
 
@@ -81,7 +103,7 @@ export default function FlightProvider({ children }) {
 
     setMode("flight");
     setStatus("flying");
-  }, []);
+  }, [hub]);
 
   const completeFlight = useCallback(() => {
     setProgress(1);
@@ -153,9 +175,10 @@ export default function FlightProvider({ children }) {
 
       progress,
       sessionId,
-      telemetry,
+      showFlightPath,
+      telemetry, performance, predictedPerformance, autoPathFollowing, setAutoPathFollowing, showGhostAircraft, setShowGhostAircraft, failureReason, failFlight,
 
-      aircraftRef,
+      aircraftRef, simulationTime, setShowFlightPath,
 
       isFlying: status === "flying",
       isPaused: status === "paused",
@@ -182,7 +205,8 @@ export default function FlightProvider({ children }) {
 
       progress,
       sessionId,
-      telemetry,
+      showFlightPath,
+      telemetry, performance, predictedPerformance, autoPathFollowing, showGhostAircraft, failureReason, failFlight,
 
       startFlight,
       completeFlight,
