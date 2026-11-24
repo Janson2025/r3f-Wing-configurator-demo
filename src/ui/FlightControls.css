@@ -1,0 +1,197 @@
+/* src/ui/FlightControls.css */
+
+.flight-controls {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1000;
+
+  box-sizing: border-box;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+
+  padding: 18px;
+
+  background: rgba(16, 25, 35, 0.92);
+  color: #e8f0f6;
+
+  border: 1px solid rgba(160, 190, 215, 0.2);
+  border-radius: 10px;
+
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+
+  font-family: system-ui, sans-serif;
+}
+
+.flight-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #60bddf;
+}
+
+.flight-heading h1 {
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1.2;
+  margin: 4px 0;
+}
+
+.flight-heading p {
+  font-size: 11px;
+  color: #91a9bb;
+  margin: 5px 0 18px;
+}
+
+.flight-button {
+  box-sizing: border-box;
+  padding: 9px 12px;
+
+  border: 1px solid #344657;
+  border-radius: 6px;
+
+  background: #243443;
+  color: #d8e5ef;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition:
+    background 150ms,
+    border-color 150ms;
+}
+
+.flight-button:hover {
+  background: #30485a;
+}
+
+.flight-button.primary {
+  width: 100%;
+
+  background: #297c9c;
+  border-color: #469fbf;
+  color: white;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.flight-button.primary:hover {
+  background: #3495b9;
+}
+
+.flight-button.active {
+  background: #234d62;
+  border-color: #60bddf;
+  color: #d4f4ff;
+}
+
+.flight-camera-controls,
+.flight-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.flight-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  font-size: 12px;
+  color: #b7cad8;
+}
+
+.flight-status strong {
+  color: #60bddf;
+  font-variant-numeric: tabular-nums;
+}
+
+.flight-progress {
+  height: 6px;
+  margin-top: 9px;
+
+  border-radius: 10px;
+  overflow: hidden;
+
+  background: #344657;
+}
+
+.flight-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+
+  background: #60bddf;
+  transition: width 100ms linear;
+}
+
+.flight-keyboard-hint {
+  margin: 14px 0 0;
+  color: #91a9bb;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.flight-button:focus-visible {
+  outline: 2px solid #60bddf;
+  outline-offset: 3px;
+}
+
+/* Throttle indicator */
+
+.flight-throttle {
+  display: grid;
+  gap: 7px;
+
+  margin-top: 14px;
+}
+
+.flight-throttle-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  font-size: 11px;
+  color: #91a9bb;
+}
+
+.flight-throttle-label strong {
+  color: #60bddf;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.flight-throttle-track {
+  height: 9px;
+
+  overflow: hidden;
+
+  border-radius: 4px;
+  background: #344657;
+}
+
+.flight-throttle-fill {
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: linear-gradient(
+    90deg,
+    #3985a6,
+    #60bddf
+  );
+
+  transition: width 100ms linear;
+}
+
+/* Pause control */
+
+.flight-pause-button {
+  width: 100%;
+  margin-top: 12px;
+}

@@ -1,61 +1,112 @@
 // src/ui/UserControls.jsx
-import React, { useEffect, useState } from "react";
+
+import { useState } from "react";
 import { useAnimationHub } from "../animation/AnimationHub";
 
+import "./UserControls.css";
+
 export default function UserControls() {
-  const hub = useAnimationHub();
-  const [morphNames, setMorphNames] = useState([]);
+  const {
+    morphNames,
+    morphValues,
+    setMorphValue,
+    resetMorphValues,
+    isAircraftReady,
+  } = useAnimationHub();
 
-  useEffect(() => {
-    const left = hub.refs.current.wings.left;
-    if (left?.morphTargetDictionary) {
-      setMorphNames(Object.keys(left.morphTargetDictionary));
-    }
-  }, [hub]);
-
-  const setMorph = (name, v) => hub.setMorphValue(name, v);
+  const [expanded, setExpanded] = useState(true);
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 12,
-        right: 12,
-        zIndex: 1000,
-        padding: "12px 14px",
-        borderRadius: 10,
-        background: "rgba(16,16,20,0.65)",
-        border: "1px solid rgba(255,255,255,0.12)",
-        color: "#fff",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-        width: 260,
-      }}
+    <aside
+      className={`wing-controls ${
+        expanded ? "is-expanded" : "is-collapsed"
+      }`}
     >
-      {morphNames.length > 0 && (
-        <>
-          <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
-            Wing morphs
-          </div>
-          <div style={{ display: "grid", gap: 10 }}>
-            {morphNames.map((name) => (
-              <div key={name}>
-                <div style={{ fontSize: 11, opacity: 0.85, marginBottom: 4 }}>{name}</div>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  defaultValue={0}
-                  onChange={(e) => setMorph(name, parseFloat(e.target.value))}
-                  style={{ width: "100%" }}
-                />
+      <header className="wing-controls-header">
+        <div>
+          <span className="wing-controls-eyebrow">
+            AIRCRAFT CONFIGURATION
+          </span>
+
+          <h2>Wing geometry</h2>
+        </div>
+
+        <button
+          type="button"
+          className="wing-controls-toggle"
+          onClick={() =>
+            setExpanded((value) => !value)
+          }
+          aria-expanded={expanded}
+          aria-controls="wing-controls-content"
+          aria-label={
+            expanded
+              ? "Hide wing controls"
+              : "Show wing controls"
+          }
+        >
+          {expanded ? "−" : "+"}
+        </button>
+      </header>
+
+      {expanded && (
+        <div id="wing-controls-content">
+          {!isAircraftReady ? (
+            <p className="wing-controls-status">
+              Loading aircraft configuration...
+            </p>
+          ) : morphNames.length === 0 ? (
+            <p className="wing-controls-status">
+              No compatible wing morphs found.
+            </p>
+          ) : (
+            <>
+              <div className="wing-controls-sliders">
+                {morphNames.map((name) => {
+                  const value = morphValues[name] ?? 0;
+
+                  return (
+                    <label
+                      className="wing-control"
+                      key={name}
+                    >
+                      <div className="wing-control-label">
+                        <span>{name}</span>
+
+                        <span className="wing-control-value">
+                          {Math.round(value * 100)}%
+                        </span>
+                      </div>
+
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={value}
+                        onChange={(event) =>
+                          setMorphValue(
+                            name,
+                            Number(event.target.value)
+                          )
+                        }
+                      />
+                    </label>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        </>
+
+              <button
+                type="button"
+                className="wing-controls-reset"
+                onClick={resetMorphValues}
+              >
+                Reset configuration
+              </button>
+            </>
+          )}
+        </div>
       )}
-    </div>
+    </aside>
   );
 }

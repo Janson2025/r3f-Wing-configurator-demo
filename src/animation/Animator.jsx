@@ -1,114 +1,165 @@
 // src/animation/Animator.jsx
-import { useRef } from "react";
+
 import { useFrame } from "@react-three/fiber";
+
 import { useAnimationHub } from "./AnimationHub";
-import { getPos, setPos, getRot, setRot } from "./axisMap";
+import { setRot } from "./axisMap";
+
+import { useFlight } from "../flight/FlightContext";
+import { FLIGHT_CONFIG } from "../flight/flightConfig";
 
 export default function Animator() {
   const hub = useAnimationHub();
-  const elapsed = useRef(0);
 
-  // capture baselines for both position and rotation
-  const base = useRef({
-    pos: null,                // THREE.Vector3 clone
-    rot: { x: 0, y: 0, z: 0 } // raw Euler components at baseline
-  });
+  const {
+    mode,
+    status,
+    telemetry,
+  } = useFlight();
 
-  useFrame((_, dt) => {
-    elapsed.current += dt;
+  useFrame((_, delta) => {
+    const dt = Math.min(delta, 0.05);
 
     const {
-      planeBody,
       leftProp,
       rightProp,
+
       cockpitCase,
       leftRearDoorWindow,
-      rearSideDoor,     // ← whole door group ("rear_side_door")
-      noseHatchPivot,   // ← local pivot group ("nose_Empty")
+      rearSideDoor,
+      noseHatchPivot,
+
       wings,
     } = hub.refs.current;
 
-    // Baseline capture (once)
-    if (planeBody && !base.current.pos) {
-      base.current.pos = planeBody.position.clone();
-      base.current.rot.x = planeBody.rotation.x;
-      base.current.rot.y = planeBody.rotation.y;
-      base.current.rot.z = planeBody.rotation.z;
-    }
-
+    // -----------------------------------------
     // Propellers
-    if (leftProp && rightProp) {
-      const spin = 20 * dt;
-      leftProp.rotation.z -= spin;
-      rightProp.rotation.z += spin;
-    }
+    // -----------------------------------------
 
-    // --------- Rumble (Z-only) & Waggle (Y-only) with axis remap ---------
-    if (!hub.isInteracting.current && planeBody && base.current.pos) {
-      const t = elapsed.current;
+    const enginesRunning =
+      mode === "flight" &&
+      status === "flying";
 
-      // Rumble: only Z translation
-      setPos(planeBody, "x", getPos(base.current.pos, "x"));
-      setPos(planeBody, "y", getPos(base.current.pos, "y"));
-      const baseZ = getPos(base.current.pos, "z");
-      const rumbleAmp = 0.02;
-      setPos(planeBody, "z", baseZ + Math.sin(t * 16.3) * rumbleAmp);
+    if (enginesRunning) {
+      const idleSpeed = 5;
 
-      // Waggle: only Y rotation
-      const period = 6.0;
-      const phase = t % period;
-      const baseY = base.current.rot.y;
-      if (phase < 1.5) {
-        const wig = 0.06 * Math.sin(phase * Math.PI * 3);
-        setRot(planeBody, "y", baseY + wig);
-      } else {
-        const curY = getRot(planeBody, "y");
-        setRot(planeBody, "y", curY + (baseY - curY) * 0.1);
+      const maximumSpeed =
+        FLIGHT_CONFIG.propellerSpeed;
+
+      const spinSpeed =
+        idleSpeed +
+        (maximumSpeed - idleSpeed) *
+          telemetry.throttle;
+
+      const spin = spinSpeed * dt;
+
+      if (leftProp) {
+        leftProp.rotation.z -= spin;
       }
-    } else if (planeBody && base.current.pos) {
-      // While interacting: converge back to baseline (no rumble/waggle)
-      setPos(planeBody, "x", getPos(base.current.pos, "x"));
-      setPos(planeBody, "y", getPos(base.current.pos, "y"));
-      const curZ = getPos(planeBody, "z");
-      const baseZ = getPos(base.current.pos, "z");
-      setPos(planeBody, "z", curZ + (baseZ - curZ) * 0.2);
 
-      const curY = getRot(planeBody, "y");
-      const baseY = base.current.rot.y;
-      setRot(planeBody, "y", curY + (baseY - curY) * 0.2);
+      if (rightProp) {
+        rightProp.rotation.z += spin;
+      }
     }
 
-    // ---------------- Hinges (call step() once per hinge) ----------------
-    // Cockpit door: X axis; target is -90° (set in AnimationHub's useHinge)
+    // -----------------------------------------
+    // Cockpit hinge
+    // -----------------------------------------
+
     if (cockpitCase) {
-      const aCockpit = hub.cockpitHinge.step(dt);
-      setRot(cockpitCase, "x", aCockpit);
+      const angle =
+        hub.cockpitHinge.step(dt);
+
+      setRot(
+        cockpitCase,
+        "x",
+        angle
+      );
     }
 
-    // Rear door: Y axis; apply to BOTH window and door group
+    // -----------------------------------------
+    // Rear door hinge
+    // -----------------------------------------
+
     if (leftRearDoorWindow || rearSideDoor) {
-      const aRear = hub.rearWindowHinge.step(dt);
-      if (leftRearDoorWindow) setRot(leftRearDoorWindow, "y", aRear);
-      if (rearSideDoor) setRot(rearSideDoor, "y", aRear);
+      const angle =
+        hub.rearWindowHinge.step(dt);
+
+      if (leftRearDoorWindow) {
+        setRot(
+          leftRearDoorWindow,
+          "y",
+          angle
+        );
+      }
+
+      if (rearSideDoor) {
+        setRot(
+          rearSideDoor,
+          "y",
+          angle
+        );
+      }
     }
 
-    // Nose hatch: rotate the local pivot group (nose_Empty) around Y
+    // -----------------------------------------
+    // Nose hatch hinge
+    // -----------------------------------------
+
     if (noseHatchPivot) {
-      const aNose = hub.noseHatchHinge.step(dt);
-      setRot(noseHatchPivot, "y", aNose);
+      const angle =
+        hub.noseHatchHinge.step(dt);
+
+      setRot(
+        noseHatchPivot,
+        "y",
+        angle
+      );
     }
 
-    // Morph targets (unchanged)
-    const names = Object.keys(hub.morphs.current);
-    if (names.length && wings.left && wings.right) {
-      const L = wings.left.morphTargetDictionary;
-      const R = wings.right.morphTargetDictionary;
-      const Li = wings.left.morphTargetInfluences;
-      const Ri = wings.right.morphTargetInfluences;
+    // -----------------------------------------
+    // Wing morph targets
+    // -----------------------------------------
+
+    const morphs = hub.morphs.current;
+
+    const names = Object.keys(morphs);
+
+    if (wings.left && wings.right) {
+      const leftDictionary =
+        wings.left.morphTargetDictionary;
+
+      const rightDictionary =
+        wings.right.morphTargetDictionary;
+
+      const leftInfluences =
+        wings.left.morphTargetInfluences;
+
+      const rightInfluences =
+        wings.right.morphTargetInfluences;
+
       for (const name of names) {
-        const v = hub.morphs.current[name] ?? 0;
-        if (L && name in L) Li[L[name]] = v;
-        if (R && name in R) Ri[R[name]] = v;
+        const value = morphs[name] ?? 0;
+
+        if (
+          leftDictionary &&
+          leftInfluences &&
+          name in leftDictionary
+        ) {
+          leftInfluences[
+            leftDictionary[name]
+          ] = value;
+        }
+
+        if (
+          rightDictionary &&
+          rightInfluences &&
+          name in rightDictionary
+        ) {
+          rightInfluences[
+            rightDictionary[name]
+          ] = value;
+        }
       }
     }
   });

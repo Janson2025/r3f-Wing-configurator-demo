@@ -1,56 +1,284 @@
 // src/App.jsx
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment, Center } from "@react-three/drei";
-import { Suspense } from "react";
 
-import AnimationHub, { useAnimationHub } from "./animation/AnimationHub";
+import {
+  Suspense,
+  useLayoutEffect,
+} from "react";
+
+import {
+  Canvas,
+  useThree,
+} from "@react-three/fiber";
+
+import {
+  OrbitControls,
+  Environment,
+  Center,
+} from "@react-three/drei";
+
+import AnimationHub, {
+  useAnimationHub,
+} from "./animation/AnimationHub";
+
 import Animator from "./animation/Animator";
+
 import { TwinStar } from "./model/twinstar/TwinStar";
+
 import UserControls from "./ui/UserControls";
+import FlightControls from "./ui/FlightControls";
+
 import DebugAxes from "./animation/debug/DebugAxes";
+
 import { setAxisMap } from "./animation/axisMap";
 
-// ✅ Set the axis map ONCE at module scope (not inside a component)
+import FlightProvider, {
+  useFlight,
+} from "./flight/FlightContext";
+
+import FlightAircraft from "./flight/FlightAircraft";
+import FlightCamera from "./flight/FlightCamera";
+import FlightTrack from "./flight/FlightTrack";
+
+// ---------------------------------------------
+// Scene configuration
+// ---------------------------------------------
+
+const SCENE_CONFIG = {
+  environmentEnabled: false,
+  environmentPreset: "city",
+  environmentBackground: true,
+  environmentBlurriness: 0.5,
+  environmentIntensity: 1.0,
+
+  debugAxesVisible: false,
+};
+
 setAxisMap({ y: "z", z: "y" });
 
-function ControlsPauser() {
+// ---------------------------------------------
+// Configuration camera
+// ---------------------------------------------
+
+function ConfiguratorCamera() {
   const hub = useAnimationHub();
+  const { camera } = useThree();
+
+  useLayoutEffect(() => {
+    // Restore the original camera when leaving flight.
+    camera.position.set(21, 21, 21);
+
+    camera.up.set(0, 1, 0);
+    camera.fov = 45;
+
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+
+    hub.isInteracting.current = false;
+
+    return () => {
+      hub.isInteracting.current = false;
+    };
+  }, [camera, hub.isInteracting]);
+
   return (
     <OrbitControls
+      makeDefault
       enableDamping
-      onStart={() => (hub.isInteracting.current = true)}
-      onEnd={() => (hub.isInteracting.current = false)}
+      dampingFactor={0.08}
+      minDistance={5}
+      maxDistance={80}
+      target={[0, 0, 0]}
+      onStart={() => {
+        hub.isInteracting.current = true;
+      }}
+      onEnd={() => {
+        hub.isInteracting.current = false;
+      }}
     />
   );
 }
 
+// ---------------------------------------------
+// Scene lighting
+// ---------------------------------------------
+
+function SceneLighting() {
+  const { mode } = useFlight();
+
+  const background =
+    mode === "flight"
+      ? "#9ac2df"
+      : "#22222f";
+
+  return (
+    <>
+      <color
+        attach="background"
+        args={[background]}
+      />
+
+      <ambientLight intensity={0.6} />
+
+      {!SCENE_CONFIG.environmentEnabled && (
+        <>
+          <hemisphereLight
+            args={[
+              "#dceaff",
+              "#646474",
+              1.0,
+            ]}
+          />
+
+          <directionalLight
+            position={[10, 15, 10]}
+            intensity={2.5}
+          />
+
+          <directionalLight
+            position={[-10, 5, -10]}
+            intensity={1.0}
+          />
+        </>
+      )}
+
+      {SCENE_CONFIG.environmentEnabled && (
+        <Suspense fallback={null}>
+          <Environment
+            preset={SCENE_CONFIG.environmentPreset}
+            background={
+              SCENE_CONFIG.environmentBackground
+            }
+            backgroundBlurriness={
+              SCENE_CONFIG.environmentBlurriness
+            }
+            environmentIntensity={
+              SCENE_CONFIG.environmentIntensity
+            }
+          />
+        </Suspense>
+      )}
+
+      {mode === "flight" && (
+        <fog
+          attach="fog"
+          args={[background, 600, 1800]}
+        />
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------
+// Aircraft configuration scene
+// ---------------------------------------------
+
+function ConfiguratorScene() {
+  return (
+    <>
+      <ConfiguratorCamera />
+
+      <Suspense fallback={null}>
+        <Center>
+          <TwinStar
+            scale={1}
+            rotation={[0, Math.PI / 8, 0]}
+          />
+
+          {SCENE_CONFIG.debugAxesVisible && (
+            <DebugAxes size={1.2} visible />
+          )}
+        </Center>
+      </Suspense>
+    </>
+  );
+}
+
+// ---------------------------------------------
+// Flight scene
+// ---------------------------------------------
+
+function FlightScene() {
+  const { sessionId } = useFlight();
+
+  return (
+    <>
+      <FlightTrack />
+
+      <Suspense fallback={null}>
+        <FlightAircraft key={sessionId} />
+
+        <FlightCamera key={`camera-${sessionId}`} />
+      </Suspense>
+    </>
+  );
+}
+
+// ---------------------------------------------
+// Main Three.js scene
+// ---------------------------------------------
+
+function AircraftScene() {
+  const { mode } = useFlight();
+
+  return (
+    <>
+      <SceneLighting />
+
+      <Animator key={mode} />
+
+      {mode === "configure" ? (
+        <ConfiguratorScene />
+      ) : (
+        <FlightScene />
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------
+// Application UI
+// ---------------------------------------------
+
+function Application() {
+  const { mode } = useFlight();
+
+  return (
+    <>
+      <Canvas
+        camera={{
+          position: [21, 21, 21],
+          fov: 45,
+          near: 0.1,
+          far: 5000,
+        }}
+        dpr={[1, 2]}
+        gl={{
+          antialias: true,
+          powerPreference: "high-performance",
+        }}
+      >
+        <AircraftScene />
+      </Canvas>
+
+      <FlightControls />
+
+      {mode === "configure" && (
+        <UserControls />
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------
+// Application entry point
+// ---------------------------------------------
+
 export default function App() {
   return (
     <AnimationHub>
-      <Canvas
-        camera={{ position: [21, 21, 21], fov: 45 }}
-        // Crisper Html/SVG buttons & overall scene
-        dpr={[1.5, 2]}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
-      >
-        <color attach="background" args={["#22222f"]} />
-        <ambientLight intensity={0.6} />
-        <Environment preset="sunset" />
-
-        {/* Must be inside Canvas */}
-        <ControlsPauser />
-        <Animator />
-
-        <Suspense fallback={null}>
-          <Center>
-            <TwinStar scale={1.0} rotation={[0, Math.PI / 8, 0]} />
-            <DebugAxes size={1.2} visible />
-          </Center>
-        </Suspense>
-      </Canvas>
-
-      {/* Pure DOM UI (no R3F hooks) can live outside Canvas */}
-      <UserControls />
+      <FlightProvider>
+        <Application />
+      </FlightProvider>
     </AnimationHub>
   );
 }

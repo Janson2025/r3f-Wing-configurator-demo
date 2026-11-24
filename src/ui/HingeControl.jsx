@@ -1,6 +1,7 @@
 // src/ui/HingeControl.jsx
 import React, { useState } from "react";
 import { Html } from "@react-three/drei";
+import { useFlight } from "../flight/FlightContext";
 
 export default function HingeControl({
   onClick,
@@ -19,11 +20,16 @@ export default function HingeControl({
   activeRGB = [0, 160, 255],     // selected (blue)
 }) {
   const [hovered, setHovered] = useState(false);
+  const { mode } = useFlight();
 
   const rgb = selected ? activeRGB : hovered ? hoverRGB : baseRGB;
   const fill = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${fillOpacity})`;
   const stroke = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${strokeOpacity})`;
   const svgStrokeWidth = strokeWidth * (100 / size); // keep stroke consistent across sizes
+
+  if (mode === "flight") {
+    return null;
+  }
 
   return (
     <Html
